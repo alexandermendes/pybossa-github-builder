@@ -1,0 +1,9 @@
+{
+    "identifier": "pybossa_github_builder",
+    "name": "pybossa-github-builder",
+    "author": "Alexander Mendes",
+    "website": "https://github.com/alexandermendes/pybossa-github-builder",
+    "license": "BSD",
+    "description": "A PyBossa plugin for creating projects directly from GitHub repositories.",
+    "version": "0.0.1"
+}
