@@ -26,11 +26,20 @@ The plugin will be available after you restart the server.
 
 ## Configuration
 
-Go to [https://github.com/settings/applications](https://github.com/settings/applications) 
-to register new application, then add the following settings to your main PyBossa 
+Go to [https://github.com/settings/applications](https://github.com/settings/applications)
+to register new application, then add the following settings to your main PyBossa
 configuration file.
 
 ``` Python
 GITHUB_CLIENT_ID = 'your-client-id'
 GITHUB_CLIENT_SECRET = 'your-client-secret'
 ```
+
+## Theme integration
+
+The plugin provides a single template,
+[new_github_project.html](pybossa_github_builder/templates/new_github_project.html),
+which matches the [pybossa-default-theme](https://github.com/PyBossa/pybossa-default-theme).
+To use a template that matches your PyBossa custom theme just add a file called
+**new_github_project.html** to the root of your
+[templates folder](https://github.com/PyBossa/pybossa-default-theme/tree/master/templates).
