@@ -65,9 +65,36 @@ http://{pybossa-site-url}/github/new_project
 ```
 
 Enter the project's name, short name and the URL of a GitHub repository. If the
-URL is valid (that is, the repository contains a **project.json** file), then
-a project will be created. See [project_schema.json](pybossa_github_builder/project_schema.json)
-for the recognised required and optional keys.
+URL is valid, then a project will be created. A URL is considered valid if it points
+to a GitHub repository and contains a **project.json** file that validates against
+the following schema:
+
+```JSON
+{
+    'type': 'object',
+    'properties': {
+        'name': {'type': 'string'},
+        'short_name': {'type': 'string'},
+        'description': {'type': 'string'},
+        'webhook': {'type': 'string'},
+        'thumbnail': {'type': 'string'}
+    },
+    'required': ['name', 'short_name', 'description'],
+    "additionalProperties": { "type": "string" }
+}
+```
+
+The object is used as follows:
+
+- **name:** The name of the project.
+- **short_name:** To be replaced wherever it appears in the project's HTML files with that given during project creation.
+- **webhook:** Any webhook to be added to the project.
+- **thumbnail:** The URL of the project's thumbnail.
+- **additionalProperties:** To be added to the project's info field.
+
+
+Note that any **additionalProperties** will be added as keys and values to the
+project's info field.
 
 If any of the following files are found in the root directory of the repository
 they are used to update the project accordingly:
