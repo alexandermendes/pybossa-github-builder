@@ -35,11 +35,44 @@ GITHUB_CLIENT_ID = 'your-client-id'
 GITHUB_CLIENT_SECRET = 'your-client-secret'
 ```
 
+
 ## Theme integration
 
 The plugin provides a single template,
-[new_github_project.html](pybossa_github_builder/templates/new_github_project.html),
+[new_github_project.html](pybossa_github_builder/templates/projects/new_github_project.html),
 which matches the [pybossa-default-theme](https://github.com/PyBossa/pybossa-default-theme).
 To use a template that matches your PyBossa custom theme just add a file called
-**new_github_project.html** to the root of your
-[templates folder](https://github.com/PyBossa/pybossa-default-theme/tree/master/templates).
+**new_github_project.html** to the root of your themes's
+[/templates/projects](https://github.com/PyBossa/pybossa-default-theme/tree/master/templates/projects)
+folder.
+
+You might want to then add something like the following snippet to
+[new.html](https://github.com/PyBossa/pybossa-default-theme/tree/master/templates/projects/new.html):
+
+```HTML+Django
+{% if 'pybossa_github_builder' in plugins %}
+    <a href="{{ url_for('github.new_project') }}" class="btn btn-primary">Create From GitHub</a>
+{% endif %}
+```
+
+
+## Usage
+
+To create a project from a GitHub repository visit:
+
+```
+http://{pybossa-site-url}/github/new_project
+```
+
+Enter the project's name, short name and the URL of a GitHub repository. If the
+URL is valid (that is, the repository contains a **project.json** file), then
+a project will be created. See [project_schema.json](pybossa_github_builder/project_schema.json)
+for the recognised required and optional keys.
+
+If any of the following files are found in the root directory of the repository
+they are used to update the project accordingly:
+
+- template.html
+- tutorial.html
+- results.html
+- long_description.md
