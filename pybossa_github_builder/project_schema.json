@@ -1,0 +1,36 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "title": "Project Schema",
+    "type": "object",
+    "properties": {
+        "name": {
+            "type": "string",
+            "description": "The name of the project"
+        },
+        "short_name": {
+            "type": "string",
+            "description": "The short name of the project."
+        },
+        "description": {
+            "type": "string",
+            "description": "A short description of the project."
+        },
+        "category_id": {
+            "type": "integer",
+            "description": "The ID of the project's category."
+        },
+        "avatar": {
+            "type": "string",
+            "description": "A URL to use as the project's thumbnail"
+        },
+        "autosync": {
+            "type": "boolean",
+            "description": "Sync the project files with a GitHub repository"
+        }
+    },
+    "required": ["name", "short_name", "description"],
+    "additionalProperties": {
+        "type": "string",
+        "description": "Additional keys and values used to update the project's info field."
+    }
+}

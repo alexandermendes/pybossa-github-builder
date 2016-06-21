@@ -3,9 +3,9 @@
 
 import re
 from pybossa.forms.forms import ProjectForm
-from wtforms import validators, ValidationError
+from wtforms import validators, ValidationError, HiddenField
 from flask_wtf.html5 import URLField
-from .github_util import extract_github_user_and_repo
+from .github_util import validate
 
 
 class GitHubRepo(object):
@@ -18,10 +18,11 @@ class GitHubRepo(object):
         self.patn = r'github\.[^\/:]+[\/|:]([^\/]+)\/([^\/|\s|\)]+)[.git|\/]?'
 
     def __call__(self, form, field):
-        if not extract_github_user_and_repo(field.data):
+        if not validate(field.data):
             raise ValidationError(self.message)
 
 
 class GitHubProjectForm(ProjectForm):
     """Form for creating a new project from GitHub."""
     github_url = URLField('GitHub URL', [validators.Required(), GitHubRepo()])
+    long_description = HiddenField('Long Description')
