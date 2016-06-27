@@ -69,49 +69,52 @@ def new():
     if request.method == 'POST' and form.validate():
         github_url = form.github_url.data
         return redirect(url_for('.import_repo', github_url=github_url))
-    elif request.method == 'POST':
+    elif request.method == 'POST':  # pragma: no cover
         flash(gettext('Please correct the errors'), 'error')
-
     return render_template('/projects/github/new.html', form=form)
 
 
-
-@blueprint.route('/project/import_repo', methods=['GET', 'POST'])
-@login_required
-@github_login_required
-def import_repo():
-    """Create a new project based on a GitHub repo."""
-    ensure_authorized_to('create', Project)
-    form = GitHubProjectForm(request.form)
-    github_url = request.args.get('github_url')
-    if not github_url:
-        return redirect(url_for('.new'))
-
-    categories = cached_cat.get_all()
-    form.category_id.choices = [(c.id, c.name) for c in categories]
-    gh_repo = GitHubRepo(github_url)
-    gh_repo.load_contents()
-    if not gh_repo.validate():
-        flash('Not a valid PyBossa project.', 'error')
-        return redirect(url_for('.new'))
-
+def _populate_form(form, repo_contents, project_json):
+    """Populate the import form using data from a GitHub repo."""
     def add_choices(field, exts, default):
         field.choices = [('', 'None')]
-        valid = {k: v for k, v in gh_repo.contents.items()
+        valid = {k: v for k, v in repo_contents.items()
                  if any(k.endswith(ext) for ext in exts)}
         for k, v in valid.items():
             field.choices.append((v['download_url'], k))
             if v['name'] == default:
                 field.default = v['download_url']
 
-    details = json.loads(gh_repo.download_file('project.json'))
+    categories = cached_cat.get_all()
     form.category_id.choices = [(c.id, c.name) for c in categories]
-    form.category_id.default = details.get('category_id', categories[0].id)
+    form.category_id.default = project_json.get('category_id',
+                                                categories[0].id)
     add_choices(form.tutorial, ['.html'], 'tutorial.html')
     add_choices(form.task_presenter, ['.html'], 'template.html')
     add_choices(form.results, ['.html'], 'results.html')
     add_choices(form.long_description, ['.md'], 'long_description.md')
     add_choices(form.thumbnail, ['.png', '.jpg', 'jpeg'], 'thumbnail.png')
+
+
+@blueprint.route('/project/import_repo', methods=['GET', 'POST'])
+@github_login_required
+@login_required
+def import_repo():
+    """Create a new project based on a GitHub repo."""
+    ensure_authorized_to('create', Project)
+    form = GitHubProjectForm(request.form)
+    github_url = request.args.get('github_url')
+    if not github_url:  # pragma: no cover
+        return redirect(url_for('.new'))
+
+    gh_repo = GitHubRepo(github_url)
+    gh_repo.load_contents()
+    if not gh_repo.validate():  # pragma: no cover
+        flash('Not a valid PyBossa project.', 'error')
+        return redirect(url_for('.new'))
+
+    details = gh_repo.get_project_json()
+    _populate_form(form, gh_repo.contents, details)
     categories = project_repo.get_all_categories()
 
     if request.method == 'POST' and form.validate():
@@ -128,7 +131,7 @@ def import_repo():
             resp = github.get(form.results.data)
             info['results'] = resp.content.replace(details['short_name'],
                                                    form.short_name.data)
-
+        long_description = None
         if form.long_description.data:
             resp = github.get(form.long_description.data)
             long_description = resp.content
@@ -148,7 +151,7 @@ def import_repo():
             uploader.upload_file(f, container=container)
         try:
             project_repo.save(project)
-        except sqlalchemy.exc.DataError as e:
+        except sqlalchemy.exc.DataError as e:  # pragma: no cover
             flash('''DataError: {0} <br><br>Please check the files being
                   imported from GitHub'''.format(e.orig), 'danger')
             return redirect(url_for('.new'))
@@ -157,7 +160,7 @@ def import_repo():
         return redirect(url_for('project.update',
                                 short_name=project.short_name))
 
-    elif request.method == 'POST':
+    elif request.method == 'POST':  # pragma: no cover
         flash(gettext('Please correct the errors'), 'error')
 
     else:

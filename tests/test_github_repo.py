@@ -1,11 +1,8 @@
 # -*- coding: utf8 -*-
 
-import os
 import json
-import jsonschema
-from default import Test, with_context
+from default import Test
 from nose.tools import assert_raises
-import pybossa_github_builder
 from pybossa_github_builder.github_repo import GitHubRepo, GitHubURLError
 from mock import MagicMock, patch
 
@@ -50,10 +47,17 @@ class TestGitHubRepo(Test):
         assert self.gh_repo.contents == expected
 
     @patch('pybossa_github_builder.github_repo.github')
-    def test_file_downloaded(self, client):
-        mock_response = MagicMock(content=True)
+    def test_project_json_downloaded(self, client):
+        project_json_dict = {"download_url": "test.com"}
+        mock_response = MagicMock(content=json.dumps(project_json_dict))
         client.get.return_value = mock_response
-        self.gh_repo.contents = {'project.json': {'download_url': 'test.com'}}
-        downloaded_file = self.gh_repo.download_file('project.json')
-        assert downloaded_file == True
+        self.gh_repo.contents = {'project.json': project_json_dict}
+        project_json = self.gh_repo.get_project_json()
+        assert project_json == project_json_dict
         assert client.get.called_with('test.com')
+
+    @patch('pybossa_github_builder.github_repo.GitHubRepo.get_project_json')
+    def test_validation(self, get_project_json):
+        get_project_json.return_value = {"short_name": "p"}
+        self.gh_repo.contents = {'project.json': {'download_url': 'test.com'}}
+        assert self.gh_repo.validate() == True

@@ -27,9 +27,14 @@ class GitHubRepo(object):
         repo = parts[2].split('.git')[0]
         return user, repo
 
+    def get_project_json(self):
+        """Download and return the project details."""
+        url = self.contents['project.json']['download_url']
+        resp = github.get(url)
+        return json.loads(resp.content)
+
     def load_contents(self):
         """Load the contents of a GitHub repo."""
-        import time
         base_url = '{0}/repos/{1}/{2}/contents'.format(self.root_endpoint,
                                                        self.user, self.repo)
         self.contents = {}
@@ -43,22 +48,16 @@ class GitHubRepo(object):
                     self.contents[item['path']] = item
         get_dir_contents()
 
-    def download_file(self, path):
-        """Download and return a raw file."""
-        url = self.contents[path]['download_url'] 
-        resp = github.get(url)
-        return resp.content
-
     def validate(self):
         """Validate a PyBossa project GitHub repo."""
         if not 'project.json' in self.contents:  # pragma: no cover
             return False
-        project_json = self.download_file('project.json')
+        project_json = self.get_project_json()
         path = os.path.join(os.path.dirname(__file__), 'project_schema.json')
         project_schema = json.load(open(path))
         try:
-            jsonschema.validate(json.loads(project_json), project_schema)
-        except jsonschema.exceptions.ValidationError as e:
+            jsonschema.validate(project_json, project_schema)
+        except jsonschema.exceptions.ValidationError as e:  # pragma: no cover
             return False
         return True
 

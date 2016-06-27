@@ -4,7 +4,7 @@ from default import Test, with_context
 from nose.tools import raises
 from wtforms import ValidationError
 from pybossa_github_builder.forms import GitHubURLForm, GitHubProjectForm
-from pybossa_github_builder.forms import GitHubURL
+from pybossa_github_builder.forms import GitHubURLValidator, JSONValidator
 
 
 class TestValidator(Test):
@@ -19,7 +19,15 @@ class TestValidator(Test):
 		with self.flask_app.test_request_context('/'):
 			f = GitHubURLForm()
 			f.github_url.data = 'http://www.example.com'
-			u = GitHubURL()
+			u = GitHubURLValidator()
+			u.__call__(f, f.github_url)
+
+	@raises(ValidationError)
+	def test_json_validator(self):
+		with self.flask_app.test_request_context('/'):
+			f = GitHubURLForm()
+			f.github_url.data = '{'
+			u = JSONValidator()
 			u.__call__(f, f.github_url)
 
 
