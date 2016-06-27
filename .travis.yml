@@ -15,8 +15,9 @@ install:
   - pip install -U pip
   - pip install -r requirements.txt
   - git clone --recursive https://github.com/PyBossa/pybossa.git
-  - pip install -r pybossa/requirements.txt
-  - pip install --editable pybossa
+  - cd pybossa/
+  - pip install -r requirements.txt
+  - cd ..
   - pip install pep8
 before_script:
   - redis-server --version
@@ -25,8 +26,10 @@ before_script:
   - psql -c "create user rtester with createdb login password 'rtester'" -U postgres
   - psql -c "create database pybossa_test owner rtester encoding 'UTF-8' lc_collate 'en_US.UTF-8' lc_ctype 'en_US.UTF-8' template template0;" -U postgres
 script:
-  - alembic -c pybossa/alembictest.ini stamp head
-  - alembic -c pybossa/alembictest.ini upgrade head
+  - cd pybossa/ 
+  - alembic -c alembictest.ini stamp head
+  - alembic -c alembictest.ini upgrade head
+  - cd ..
   - nosetests -d tests/
   - pep8
 after_success:

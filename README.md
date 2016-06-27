@@ -5,10 +5,12 @@
 [![Coverage Status](https://coveralls.io/repos/alexandermendes/pybossa-github-builder/badge.svg)]
 (https://coveralls.io/github/alexandermendes/pybossa-github-builder?branch=master)
 
-A PyBossa plugin for creating projects directly from GitHub repositories. Users
-who may not be comfotable with command line tools, such as [pbs](https://github.com/PyBossa/pbs),
-can use this plugin to generate new projects via the PyBossa web interface, in
-just a few steps.
+A PyBossa plugin for creating projects via the web interface by directly
+importing content from GitHub repositories. Essentially, the plugin enables the
+creation of fully configured projects in just a few clicks, which could be
+especially useful for users who are not comfortable with command line tools,
+such as [pbs](https://github.com/PyBossa/pbs). It also means that templates for
+the tutorial and results pages can be loaded via the web interface.
 
 
 ## Installation
@@ -30,7 +32,7 @@ The plugin will be available after you restart the server.
 ## Configuration
 
 Go to [https://github.com/settings/applications](https://github.com/settings/applications)
-to register new application, then add the following settings to your main PyBossa
+to register a new application, then add the following settings to your main PyBossa
 configuration file.
 
 ``` Python
@@ -41,30 +43,30 @@ GITHUB_CLIENT_SECRET = 'your-client-secret'
 
 ## Theme integration
 
-The plugin provides a single template,
-[new_github_project.html](pybossa_github_builder/templates/projects/new_github_project.html),
-which matches the [pybossa-default-theme](https://github.com/PyBossa/pybossa-default-theme).
-To use a template that matches your PyBossa custom theme just add a file called
-**new_github_project.html** to the root of your themes's
+The plugin provides [templates](pybossa_github_builder/templates) that match
+the [pybossa-default-theme](https://github.com/PyBossa/pybossa-default-theme).
+To use templates that matche your PyBossa custom theme just copy the
+[github](pybossa_github_builder/templates/projects/github)
+directory into your theme's
 [/templates/projects](https://github.com/PyBossa/pybossa-default-theme/tree/master/templates/projects)
-folder.
+directory and modify.
 
 You might want to then add something like the following snippet to
 [new.html](https://github.com/PyBossa/pybossa-default-theme/tree/master/templates/projects/new.html):
 
 ```HTML+Django
 {% if 'pybossa_github_builder' in plugins %}
-    <a href="{{ url_for('github.new_project') }}" class="btn btn-primary">Create From GitHub</a>
+    <a href="{{ url_for('github.new') }}" class="btn btn-primary">Import From GitHub</a>
 {% endif %}
 ```
 
 
 ## Usage
 
-To create a project fill in the form available at:
+To create a project, search for a GitHub repository using the form available at:
 
 ```
-http://{pybossa-site-url}/github/new_project
+http://{pybossa-site-url}/github/project/new
 ```
 
 A GitHub URL is considered valid if it points to a GitHub repository containing
@@ -72,10 +74,11 @@ a **project.json** file that validates against
 [project_schema.json](pybossa_github_builder/project_schema.json). Check the
 schema file for further details of the available keys.
 
-If any of the following files are found in the root directory of the repository
-they are used to update the project accordingly:
+If a valid repository is found you will be taken to a form containing the details
+found in **project.json** and fields to select the project's task presenter,
+tutorial, results, long description and thumbnail. On submitting this form a
+new project will be created.
 
-- template.html
-- tutorial.html
-- results.html
-- long_description.md
+Note that the project's short name, as it's written throughout the repository,
+will be replaced in the project's task presenter, tutorial and results
+(if any of these files are imported) with the short name entered in the form.

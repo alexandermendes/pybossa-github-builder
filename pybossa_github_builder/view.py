@@ -2,6 +2,10 @@
 """View module for pybossa-github-builder."""
 
 import json
+import time
+import StringIO
+import sqlalchemy
+from functools import wraps
 from flask import current_app as app
 from flask import render_template, redirect, session, flash, url_for, request
 from flask import Blueprint
@@ -10,15 +14,24 @@ from flask.ext.babel import gettext
 from pybossa.auth import ensure_authorized_to
 from pybossa.model.project import Project
 from pybossa.cache import categories as cached_cat
-from pybossa.core import project_repo, auditlog_repo
+from pybossa.core import project_repo, auditlog_repo, uploader
 from pybossa.auditlogger import AuditLogger
 from . import github
-from .forms import GitHubProjectForm
-from .github_util import get_project_files
+from .forms import GitHubProjectForm, GitHubURLForm
+from .github_repo import GitHubRepo
 
 
 blueprint = Blueprint('github', __name__, template_folder='templates')
 auditlogger = AuditLogger(auditlog_repo, caller='web')
+
+
+def github_login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if token_getter() is None:
+            return redirect(url_for('.login', next=request.url))
+        return f(*args, **kwargs)
+    return decorated_function
 
 
 @github.access_token_getter
@@ -29,7 +42,8 @@ def token_getter():
 @blueprint.route('/login')
 def login():
     """Login to GitHub."""
-    redirect_uri = url_for('.oauth_authorized', next=request.args.get('next'))
+    redirect_uri = url_for('.oauth_authorized', _external=True,
+                           next=request.args.get('next'))
     return github.authorize(redirect_uri=redirect_uri)
 
 
@@ -37,7 +51,7 @@ def login():
 @github.authorized_handler
 def oauth_authorized(oauth_token):
     """Authorize GitHub login."""
-    next_url = request.args.get('next') or url_for('.new_project')
+    next_url = request.args.get('next') or url_for('.new')
     if oauth_token is None:
         flash("GitHub authorization failed.", "danger")
         return redirect(url_for('project.new'))
@@ -45,57 +59,119 @@ def oauth_authorized(oauth_token):
     return redirect(next_url)
 
 
-@blueprint.route('/new_project', methods=['GET', 'POST'])
+@blueprint.route('/project/new', methods=['GET', 'POST'])
 @login_required
-def new_project():
+@github_login_required
+def new():
+    """Search for a GitHub repo by URL."""
+    ensure_authorized_to('create', Project)
+    form = GitHubURLForm(request.form)
+    if request.method == 'POST' and form.validate():
+        github_url = form.github_url.data
+        return redirect(url_for('.import_repo', github_url=github_url))
+    elif request.method == 'POST':
+        flash(gettext('Please correct the errors'), 'error')
+
+    return render_template('/projects/github/new.html', form=form)
+
+
+
+@blueprint.route('/project/import_repo', methods=['GET', 'POST'])
+@login_required
+@github_login_required
+def import_repo():
     """Create a new project based on a GitHub repo."""
     ensure_authorized_to('create', Project)
     form = GitHubProjectForm(request.form)
+    github_url = request.args.get('github_url')
+    if not github_url:
+        return redirect(url_for('.new'))
+
+    categories = cached_cat.get_all()
+    form.category_id.choices = [(c.id, c.name) for c in categories]
+    gh_repo = GitHubRepo(github_url)
+    gh_repo.load_contents()
+    if not gh_repo.validate():
+        flash('Not a valid PyBossa project.', 'error')
+        return redirect(url_for('.new'))
+
+    def add_choices(field, exts, default):
+        field.choices = [('', 'None')]
+        valid = {k: v for k, v in gh_repo.contents.items()
+                 if any(k.endswith(ext) for ext in exts)}
+        for k, v in valid.items():
+            field.choices.append((v['download_url'], k))
+            if v['name'] == default:
+                field.default = v['download_url']
+
+    details = json.loads(gh_repo.download_file('project.json'))
+    form.category_id.choices = [(c.id, c.name) for c in categories]
+    form.category_id.default = details.get('category_id', categories[0].id)
+    add_choices(form.tutorial, ['.html'], 'tutorial.html')
+    add_choices(form.task_presenter, ['.html'], 'template.html')
+    add_choices(form.results, ['.html'], 'results.html')
+    add_choices(form.long_description, ['.md'], 'long_description.md')
+    add_choices(form.thumbnail, ['.png', '.jpg', 'jpeg'], 'thumbnail.png')
+    categories = project_repo.get_all_categories()
 
     if request.method == 'POST' and form.validate():
-        project_files = get_project_files(form.github_url.data)
-        project_json = json.loads(project_files['project.json'])
-        name = project_json['name']
-        short_name = project_json['short_name']
-        description = project_json['description']
-        long_description = project_files.get('long_description.md',
-                                             description)
+        info = json.loads(form.additional_properties.data)
+        if form.tutorial.data:
+            resp = github.get(form.tutorial.data)
+            info['tutorial'] = resp.content.replace(details['short_name'],
+                                                    form.short_name.data)
+        if form.task_presenter.data:
+            resp = github.get(form.task_presenter.data)
+            info['task_presenter'] = resp.content.replace(details['short_name'],
+                                                          form.short_name.data)
+        if form.results.data:
+            resp = github.get(form.results.data)
+            info['results'] = resp.content.replace(details['short_name'],
+                                                   form.short_name.data)
 
-        info = {'github_url': form.github_url.data}
-        template = project_files.get('template.html')
-        results = project_files.get('results.html')
-        tutorial = project_files.get('tutorial.html')
-        if template:
-            info['task_presenter'] = template.replace(short_name,
-                                                      form.short_name.data)
-        if results:
-            info['results'] = results.replace(short_name, form.short_name.data)
-        if tutorial:
-            info['tutorial'] = tutorial.replace(short_name,
-                                                form.short_name.data)
-
-        default_category = cached_cat.get_all()[0]
+        if form.long_description.data:
+            resp = github.get(form.long_description.data)
+            long_description = resp.content
         project = Project(name=form.name.data,
                           short_name=form.short_name.data,
-                          description=description,
+                          description=form.description.data,
                           long_description=long_description,
                           owner_id=current_user.id,
-                          category_id=default_category.id,
+                          category_id=form.category_id.data,
+                          webhook=form.webhook.data,
                           info=info)
-        project_repo.save(project)
+        if form.thumbnail.data:
+            f = StringIO.StringIO(github.get(form.thumbnail.data).content)
+            prefix = time.time()
+            f.filename = "project_%s_thumbnail_%i.png" % (project.id, prefix)
+            container = "user_%s" % current_user.id
+            uploader.upload_file(f, container=container)
+        try:
+            project_repo.save(project)
+        except sqlalchemy.exc.DataError as e:
+            flash('''DataError: {0} <br><br>Please check the files being
+                  imported from GitHub'''.format(e.orig), 'danger')
+            return redirect(url_for('.new'))
         flash(gettext('Project created!'), 'success')
-        auditlogger.add_log_entry(None, project, current_user)
+        auditlogger.add_log_entry(project, None, current_user)
         return redirect(url_for('project.update',
                                 short_name=project.short_name))
 
     elif request.method == 'POST':
         flash(gettext('Please correct the errors'), 'error')
-    return render_template('/projects/new_github_project.html', form=form)
 
+    else:
+        form.process()
+        form.name.data = details.get('name', '')
+        form.short_name.data = details.get('short_name', '')
+        form.description.data = details.get('description', '')
+        form.webhook.data = details.get('webhook', '')
 
-@blueprint.route('/sync', methods=['GET', 'POST'])
-@login_required
-def sync():
-    pass
+        reserved_keys = ['name', 'short_name', 'description', 'webhook',
+                         'category_id']
+        for k in reserved_keys:
+            details.pop(k, None)
+        form.additional_properties.data = json.dumps(details)
 
-
+    return render_template('/projects/github/import_repo.html', form=form,
+                           github_url=github_url)

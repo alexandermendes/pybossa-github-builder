@@ -17,18 +17,13 @@
         },
         "category_id": {
             "type": "integer",
-            "description": "The ID of the project's category."
+            "description": "The category ID of the project."
         },
         "avatar": {
             "type": "string",
-            "description": "A URL to use as the project's thumbnail"
-        },
-        "autosync": {
-            "type": "boolean",
-            "description": "Sync the project files with a GitHub repository"
+            "description": "An image URL to use as the project's thumbnail."
         }
     },
-    "required": ["name", "short_name", "description"],
     "additionalProperties": {
         "type": "string",
         "description": "Additional keys and values used to update the project's info field."

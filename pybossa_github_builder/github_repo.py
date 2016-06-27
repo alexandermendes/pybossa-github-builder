@@ -29,10 +29,11 @@ class GitHubRepo(object):
 
     def load_contents(self):
         """Load the contents of a GitHub repo."""
+        import time
         base_url = '{0}/repos/{1}/{2}/contents'.format(self.root_endpoint,
                                                        self.user, self.repo)
         self.contents = {}
-        def get_dir_contents(path=None):
+        def get_dir_contents(path=''):
             url = '{0}/{1}'.format(base_url, path)
             resp = github.get(url)
             for item in resp:
@@ -44,15 +45,15 @@ class GitHubRepo(object):
 
     def download_file(self, path):
         """Download and return a raw file."""
-        url = self.contents[path]['download_url']
+        url = self.contents[path]['download_url'] 
         resp = github.get(url)
         return resp.content
 
     def validate(self):
         """Validate a PyBossa project GitHub repo."""
-        project_json = self.download_file('project.json')
-        if not project_json:  # pragma: no cover
+        if not 'project.json' in self.contents:  # pragma: no cover
             return False
+        project_json = self.download_file('project.json')
         path = os.path.join(os.path.dirname(__file__), 'project_schema.json')
         project_schema = json.load(open(path))
         try:

@@ -1,0 +1,47 @@
+{% extends "/base.html" %}
+{% set active_page = "create" %}
+{% set active_link  = "projects" %}
+{% import "account/_helpers.html" as helper %}
+
+{% block content %}
+{% from "_formhelpers.html" import render_field %}
+
+<section class="account profile">
+<div id="app-form" class="container">
+    <div class=" col-sm-3 col-md-3 ">
+        {{ helper.render_account_local_nav(current_user, active_link) }}
+    </div>
+    <div class="col-sm-9 col-md-9">
+        <h2><strong>{{ _('Project') }}</strong>: {{ _('Create a new project') }}</h2>
+        <form class="" method="post" action="{{ url_for('github.import_repo', github_url=github_url)}}" enctype="multipart/form-data">
+            {{ form.hidden_tag() }}
+            <fieldset>
+                {{ render_field(form.name, class_="span4", placeholder=_('The name of the project')) }}
+                {{ render_field(form.short_name, class_="span4", placeholder=_('Short name or slug for the project')) }}
+                {{ render_field(form.description, class_="span4", placeholder=_('Give some details about the project')) }}
+                {{ render_field(form.long_description, class_="span4") }}
+                {{ render_field(form.webhook, class_="span4") }}
+                {{ render_field(form.task_presenter, class_="span4") }}
+                {{ render_field(form.tutorial, class_="span4") }}
+                {{ render_field(form.results, class_="span4") }}
+                {{ render_field(form.thumbnail, class_="span4") }}
+                {{ render_field(form.category_id, class_="span4") }}
+                {{ render_field(form.additional_properties, rows="10", class_="span4") }}
+                <div class="form-actions">
+                    <button type="submit" value="Create" class="btn btn-primary">{{_('Create')}}</button>
+                    <a href="{{url_for('github.new', name=current_user.name)}}" class="btn btn-default">{{_('Cancel')}}</a>
+                </div>
+            </fieldset>
+        </form>
+    </div>
+</div>
+</section>
+<script>
+    // Prettify JSON field
+    var props = document.getElementById("additional_properties"),
+        jsonStr = JSON.parse(props.value),
+        pretty = JSON.stringify(jsonStr, null, 4);
+    props.value = pretty;
+</script>
+<script src="{{url_for('static', filename='js/forms.js')}}" type="text/javascript"></script>
+{% endblock %}
