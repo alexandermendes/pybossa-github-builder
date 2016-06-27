@@ -2,7 +2,9 @@ sudo: required
 dist: trusty
 language: python
 python:
-  - "2.7"
+  - '2.7'
+git:
+  submodules: false
 env:
   - PYBOSSA_SETTINGS='../settings_test.py' PYBOSSA_REDIS_CACHE_DISABLED='1'
 services:

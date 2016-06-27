@@ -5,5 +5,5 @@
     "website": "https://github.com/alexandermendes/pybossa-github-builder",
     "license": "BSD",
     "description": "A PyBossa plugin for creating projects directly from GitHub repositories.",
-    "version": "0.1.0"
+    "version": "0.1.1"
 }
