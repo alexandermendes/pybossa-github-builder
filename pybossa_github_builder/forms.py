@@ -11,7 +11,7 @@ from pybossa.forms.forms import ProjectForm
 from pybossa.forms import validator as pb_validator
 
 
-class GitHubURL(object):
+class GitHubURLValidator(object):
     """Validator to check for a valid GitHub repository."""
 
     def __init__(self, message=None):
@@ -41,7 +41,8 @@ class JSONValidator(object):
 
 class GitHubURLForm(Form):
     """Form for creating a new project from GitHub."""
-    github_url = URLField('GitHub URL', [validators.Required(), GitHubURL()])
+    github_url = URLField('GitHub URL', [validators.Required(),
+                                         GitHubURLValidator()])
 
 
 class GitHubProjectForm(ProjectForm):
