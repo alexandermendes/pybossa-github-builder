@@ -119,17 +119,18 @@ def import_repo():
 
     if request.method == 'POST' and form.validate():
         info = json.loads(form.additional_properties.data)
+        original_short_name = details['short_name']
         if form.tutorial.data:
             resp = github.get(form.tutorial.data)
-            info['tutorial'] = resp.content.replace(details['short_name'],
+            info['tutorial'] = resp.content.replace(original_short_name,
                                                     form.short_name.data)
         if form.task_presenter.data:
             resp = github.get(form.task_presenter.data)
-            info['task_presenter'] = resp.content.replace(details['short_name'],
+            info['task_presenter'] = resp.content.replace(original_short_name,
                                                           form.short_name.data)
         if form.results.data:
             resp = github.get(form.results.data)
-            info['results'] = resp.content.replace(details['short_name'],
+            info['results'] = resp.content.replace(original_short_name,
                                                    form.short_name.data)
         long_description = None
         if form.long_description.data:

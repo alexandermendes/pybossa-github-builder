@@ -60,4 +60,4 @@ class TestGitHubRepo(Test):
     def test_validation(self, get_project_json):
         get_project_json.return_value = {"short_name": "p"}
         self.gh_repo.contents = {'project.json': {'download_url': 'test.com'}}
-        assert self.gh_repo.validate() == True
+        assert self.gh_repo.validate() is True

@@ -38,6 +38,7 @@ class GitHubRepo(object):
         base_url = '{0}/repos/{1}/{2}/contents'.format(self.root_endpoint,
                                                        self.user, self.repo)
         self.contents = {}
+
         def get_dir_contents(path=''):
             url = '{0}/{1}'.format(base_url, path)
             resp = github.get(url)
@@ -50,7 +51,7 @@ class GitHubRepo(object):
 
     def validate(self):
         """Validate a PyBossa project GitHub repo."""
-        if not 'project.json' in self.contents:  # pragma: no cover
+        if 'project.json' not in self.contents:  # pragma: no cover
             return False
         project_json = self.get_project_json()
         path = os.path.join(os.path.dirname(__file__), 'project_schema.json')
