@@ -19,9 +19,9 @@
             "type": "integer",
             "description": "The category ID of the project."
         },
-        "avatar": {
+        "webhook": {
             "type": "string",
-            "description": "An image URL to use as the project's thumbnail."
+            "description": "A webhook URL for the project."
         }
     },
     "additionalProperties": {
