@@ -2,7 +2,7 @@
 
 [![Build Status](https://travis-ci.org/alexandermendes/pybossa-github-builder.svg?branch=master)]
 (https://travis-ci.org/alexandermendes/pybossa-github-builder)
-[![Coverage Status](https://coveralls.io/repos/alexandermendes/pybossa-github-builder/badge.svg)]
+[![Coverage Status](https://coveralls.io/repos/github/alexandermendes/pybossa-github-builder/badge.svg?branch=master)]
 (https://coveralls.io/github/alexandermendes/pybossa-github-builder?branch=master)
 
 A PyBossa plugin for creating projects via the web interface by directly
