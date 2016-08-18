@@ -20,7 +20,7 @@ REQUIRED_SETTINGS = ('GITHUB_CLIENT_ID', 'GITHUB_CLIENT_SECRET')
 
 
 class PyBossaGitHubBuilder(Plugin):
-    """Libcrowds data plugin class."""
+    """PyBossa GitHub Builder plugin class."""
 
     def setup(self):
         """Setup the plugin."""
