@@ -63,22 +63,21 @@ You might want to then add a link to
 
 ## Usage
 
-To create a project, search for a GitHub repository using the form available at:
+Create a project then visit:
 
 ```
-http://{pybossa-site-url}/github/project/new
+http://{pybossa-site-url}/github/sync/{project-short-name}
 ```
 
-A GitHub URL is considered valid if it points to a GitHub repository containing
-a **project.json** file that validates against
+Enter a valid GitHub URL. A GitHub URL is considered valid if it points to a
+GitHub repository containing a **project.json** file that validates against
 [project_schema.json](pybossa_github_builder/project_schema.json). Check the
 schema file for further details of the available keys.
 
 If a valid repository is found you will be taken to a form containing the details
 found in **project.json** and fields to select the project's task presenter,
-tutorial, results, long description and thumbnail. On submitting this form a
-new project will be created.
+tutorial, results, long description, thumbnail and so on.
 
-Note that the project's short name, as it's written throughout the repository,
-will be replaced in the project's task presenter, tutorial and results
-(if any of these files are imported) with the short name entered in the form.
+Note that the project's short name, as it's written throughout the GitHub
+repository, will be replaced in the project's task presenter, tutorial and results
+(if any of these files are imported) with the short name of the actual project.
