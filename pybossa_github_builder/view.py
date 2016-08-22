@@ -78,7 +78,8 @@ def sync(short_name):
                                 short_name=project.short_name))
     elif request.method == 'POST':  # pragma: no cover
         flash(gettext('Please correct the errors'), 'error')
-    return render_template('/sync.html', form=form, project=project)
+    return render_template('projects/github/sync.html', form=form,
+                           project=project)
 
 
 def _populate_form(form, repo_contents, project_json):
@@ -190,5 +191,5 @@ def import_repo(short_name):
             project_json.pop(k, None)
         form.additional_properties.data = json.dumps(project_json)
 
-    return render_template('/import.html', form=form,
+    return render_template('projects/github/import.html', form=form,
                            github_url=github_url, project=project)
