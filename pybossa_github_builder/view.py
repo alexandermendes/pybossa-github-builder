@@ -156,7 +156,6 @@ def import_repo(short_name):
         project.category_id = form.category_id.data
         project.webhook = form.webhook.data
         project.info = info
-        print project.info
 
         if form.thumbnail.data:
             f = StringIO.StringIO(github.get(form.thumbnail.data).content)
