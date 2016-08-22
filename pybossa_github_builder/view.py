@@ -11,6 +11,7 @@ from flask import render_template, redirect, session, flash, url_for, request
 from flask import Blueprint
 from flask.ext.login import login_required, current_user
 from flask.ext.babel import gettext
+from flask.ext.github import GitHubError
 from pybossa.auth import ensure_authorized_to
 from pybossa.model.project import Project
 from pybossa.cache import categories as cached_cat
@@ -59,7 +60,7 @@ def oauth_authorized(oauth_token):
     return redirect(next_url)
 
 
-@blueprint.route('/project/new', methods=['GET', 'POST'])
+@blueprint.route('/new', methods=['GET', 'POST'])
 @login_required
 @github_login_required
 def new():
@@ -71,7 +72,7 @@ def new():
         return redirect(url_for('.import_repo', github_url=github_url))
     elif request.method == 'POST':  # pragma: no cover
         flash(gettext('Please correct the errors'), 'error')
-    return render_template('/projects/github/new.html', form=form)
+    return render_template('/new.html', form=form)
 
 
 def _populate_form(form, repo_contents, project_json):
@@ -96,7 +97,7 @@ def _populate_form(form, repo_contents, project_json):
     add_choices(form.thumbnail, ['.png', '.jpg', 'jpeg'], 'thumbnail.png')
 
 
-@blueprint.route('/project/import_repo', methods=['GET', 'POST'])
+@blueprint.route('/import_repo', methods=['GET', 'POST'])
 @github_login_required
 @login_required
 def import_repo():
@@ -104,22 +105,29 @@ def import_repo():
     ensure_authorized_to('create', Project)
     form = GitHubProjectForm(request.form)
     github_url = request.args.get('github_url')
+
     if not github_url:  # pragma: no cover
         return redirect(url_for('.new'))
 
     gh_repo = GitHubRepo(github_url)
-    gh_repo.load_contents()
-    if not gh_repo.validate():  # pragma: no cover
-        flash('Not a valid PyBossa project.', 'error')
+
+    try:
+        gh_repo.load_contents()
+    except GitHubError as e:  # pragma: no cover
+        flash(str(e), 'error')
         return redirect(url_for('.new'))
 
-    details = gh_repo.get_project_json()
-    _populate_form(form, gh_repo.contents, details)
+    if not gh_repo.validate():  # pragma: no cover
+        flash('That is not a valid PyBossa project.', 'error')
+        return redirect(url_for('.new'))
+
+    project_json = gh_repo.get_project_json()
+    _populate_form(form, gh_repo.contents, project_json)
     categories = project_repo.get_all_categories()
 
     if request.method == 'POST' and form.validate():
         info = json.loads(form.additional_properties.data)
-        original_short_name = details['short_name']
+        original_short_name = project_json['short_name']
         if form.tutorial.data:
             resp = github.get(form.tutorial.data)
             info['tutorial'] = resp.content.replace(original_short_name,
@@ -166,16 +174,16 @@ def import_repo():
 
     else:
         form.process()
-        form.name.data = details.get('name', '')
-        form.short_name.data = details.get('short_name', '')
-        form.description.data = details.get('description', '')
-        form.webhook.data = details.get('webhook', '')
+        form.name.data = project_json.get('name', '')
+        form.short_name.data = project_json.get('short_name', '')
+        form.description.data = project_json.get('description', '')
+        form.webhook.data = project_json.get('webhook', '')
 
         reserved_keys = ['name', 'short_name', 'description', 'webhook',
                          'category_id']
         for k in reserved_keys:
-            details.pop(k, None)
-        form.additional_properties.data = json.dumps(details)
+            project_json.pop(k, None)
+        form.additional_properties.data = json.dumps(project_json)
 
-    return render_template('/projects/github/import_repo.html', form=form,
+    return render_template('/import_repo.html', form=form,
                            github_url=github_url)
