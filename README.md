@@ -45,18 +45,18 @@ GITHUB_CLIENT_SECRET = 'your-client-secret'
 
 The plugin provides [templates](pybossa_github_builder/templates) that match
 the [pybossa-default-theme](https://github.com/PyBossa/pybossa-default-theme).
-To use templates that matche your PyBossa custom theme just copy the
+To use templates that match your PyBossa custom theme just copy the
 [github](pybossa_github_builder/templates/projects/github)
 directory into your theme's
 [/templates/projects](https://github.com/PyBossa/pybossa-default-theme/tree/master/templates/projects)
 directory and modify.
 
-You might want to then add something like the following snippet to
-[new.html](https://github.com/PyBossa/pybossa-default-theme/tree/master/templates/projects/new.html):
+You might want to then add a link to
+[tasks.html](https://github.com/PyBossa/pybossa-default-theme/tree/master/templates/projects/tasks.html):
 
 ```HTML+Django
 {% if 'pybossa_github_builder' in plugins %}
-    <a href="{{ url_for('github.new') }}" class="btn btn-primary">Import From GitHub</a>
+    <a href="{{ url_for('github.sync', short_name=project.short_name) }}">Sync with GitHub</a>
 {% endif %}
 ```
 

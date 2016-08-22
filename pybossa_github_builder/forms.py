@@ -7,7 +7,6 @@ from wtforms import SelectField, TextAreaField, TextField
 from flask_wtf import Form
 from flask_wtf.html5 import URLField
 from .github_repo import GitHubRepo, GitHubURLError
-from pybossa.forms.forms import ProjectForm
 from pybossa.forms import validator as pb_validator
 
 
@@ -45,8 +44,9 @@ class GitHubURLForm(Form):
                                          GitHubURLValidator()])
 
 
-class GitHubProjectForm(ProjectForm):
+class GitHubProjectForm(Form):
     """Form for creating a new project from GitHub."""
+    description = TextAreaField('Description', [validators.Length(max=255)])
     task_presenter = SelectField('Task Presenter', coerce=str)
     tutorial = SelectField('Tutorial', coerce=str)
     results = SelectField('Results', coerce=str)
