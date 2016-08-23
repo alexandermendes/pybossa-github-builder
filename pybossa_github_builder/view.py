@@ -163,6 +163,10 @@ def import_repo(short_name):
             f.filename = "project_%s_thumbnail_%i.png" % (project.id, prefix)
             container = "user_%s" % current_user.id
             uploader.upload_file(f, container=container)
+            if project.info.get('thumbnail'):
+                uploader.delete_file(project.info['thumbnail'], container)
+            project.info['container'] = container
+            project.info['thumbnail'] = f.filename
         try:
             project_repo.update(project)
         except sqlalchemy.exc.DataError as e:  # pragma: no cover
