@@ -1,6 +1,7 @@
 # -*- coding: utf8 -*-
 """Forms module for pybossa-github-builder."""
 
+import re
 import json
 from wtforms import validators, ValidationError
 from wtforms import SelectField, TextAreaField, TextField
@@ -19,9 +20,9 @@ class GitHubURLValidator(object):
         self.message = message
 
     def __call__(self, form, field):
-        try:
-            github_repo = GitHubRepo(field.data)
-        except GitHubURLError:
+        patn = r'github\.[^\/:]+[\/|:]([^\/]+)\/([^\/|\s|\)]+)[.git|\/]?'
+        match = re.search(patn, field.data)
+        if not match:
             raise ValidationError(self.message)
 
 
