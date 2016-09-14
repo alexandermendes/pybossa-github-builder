@@ -4,6 +4,7 @@ import json
 from default import Test
 from nose.tools import assert_raises
 from pybossa_github_builder.github_repo import GitHubRepo, GitHubURLError
+from pybossa_github_builder.github_repo import InvalidPybossaProjectError
 from mock import MagicMock, patch
 
 
@@ -41,7 +42,7 @@ class TestGitHubRepo(Test):
     @patch('pybossa_github_builder.github_repo.github')
     def test_contents_loaded(self, client):
         client.get.side_effect = (self.api_contents[0], self.api_contents[1])
-        contents = self.gh_repo.load_contents()
+        self.gh_repo.load_contents()
         expected = {self.api_contents[0][0]['path']: self.api_contents[0][0],
                     self.api_contents[1][0]['path']: self.api_contents[1][0]}
         assert self.gh_repo.contents == expected
@@ -56,8 +57,8 @@ class TestGitHubRepo(Test):
         assert project_json == project_json_dict
         assert client.get.called_with('test.com')
 
-    @patch('pybossa_github_builder.github_repo.GitHubRepo.get_project_json')
-    def test_validation(self, get_project_json):
-        get_project_json.return_value = {"short_name": "p"}
-        self.gh_repo.contents = {'project.json': {'download_url': 'test.com'}}
-        assert self.gh_repo.validate() is True
+    @patch('pybossa_github_builder.github_repo.github')
+    def test_validation_fails_when_no_project_json(self, client):
+        self.gh_repo.load_contents()
+        with assert_raises(InvalidPybossaProjectError):
+            assert self.gh_repo.validate()
