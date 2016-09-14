@@ -21,7 +21,7 @@ from pybossa.core import project_repo, auditlog_repo, uploader
 from pybossa.auditlogger import AuditLogger
 from . import github
 from .forms import GitHubProjectForm, GitHubURLForm
-from .github_repo import GitHubRepo
+from .github_repo import GitHubRepo, InvalidPybossaProjectError
 
 
 blueprint = Blueprint('github', __name__, template_folder='templates')
@@ -115,15 +115,10 @@ def import_repo(short_name):
     ensure_authorized_to('update', project)
 
     github_url = request.args.get('github_url')
-    gh_repo = GitHubRepo(github_url)
     try:
-        gh_repo.load_contents()
-    except GitHubError as e:  # pragma: no cover
+        gh_repo = GitHubRepo(github_url)
+    except (GitHubError, InvalidPybossaProjectError) as e:
         flash(str(e), 'error')
-        return redirect(url_for('.sync', short_name=project.short_name))
-    if not gh_repo.validate():  # pragma: no cover
-        flash('That is not a valid PyBossa project', 'error')
-        return redirect(url_for('.sync', short_name=project.short_name))
 
     form = GitHubProjectForm(request.form)
     project_json = gh_repo.get_project_json()
