@@ -31,29 +31,6 @@ class GitHubRepo(object):
 
     def __init__(self, url):
         self.user, self.repo = self.get_user_and_repo(url)
-        self.load_contents()
-        self.validate()
-
-    def get_user_and_repo(self, url):
-        """Return the GitHub user and repo."""
-        patn = r'github\.[^\/:]+[\/|:]([^\/]+)\/([^\/|\s|\)]+)[.git|\/]?'
-        match = re.search(patn, url)
-        if not match:
-            raise GitHubURLError()
-        parts = re.split('/|:', match.group(0))
-        user = parts[1]
-        repo = parts[2].split('.git')[0]
-        return user, repo
-
-    def get_project_json(self):
-        """Download and return the project details."""
-        url = self.contents['project.json']['download_url']
-        resp = github.get(url)
-        try:
-            project_json = json.loads(resp.content)
-        except ValueError as e:
-            raise InvalidPybossaProjectError(str(e))
-        return project_json
 
     def load_contents(self):
         """Load the contents of a GitHub repo."""
@@ -72,10 +49,13 @@ class GitHubRepo(object):
         get_dir_contents()
 
     def validate(self):
-        """Validate a PyBossa project GitHub repo."""
+        """Validate a GitHub repo as a PyBossa project."""
         if 'project.json' not in self.contents:  # pragma: no cover
             raise InvalidPybossaProjectError('no project.json file found')
-        project_json = self.get_project_json()
+        try:
+            project_json = self.get_project_json()
+        except ValueError as e:
+            raise InvalidPybossaProjectError(str(e))
         path = os.path.join(os.path.dirname(__file__), 'project_schema.json')
         project_schema = json.load(open(path))
         try:
@@ -83,3 +63,20 @@ class GitHubRepo(object):
         except jsonschema.exceptions.ValidationError as e:  # pragma: no cover
             err_msg = 'project.json does not validate against the schema'
             raise InvalidPybossaProjectError(err_msg)
+
+    def get_user_and_repo(self, url):
+        """Return the GitHub user and repo."""
+        patn = r'github\.[^\/:]+[\/|:]([^\/]+)\/([^\/|\s|\)]+)[.git|\/]?'
+        match = re.search(patn, url)
+        if not match:
+            raise GitHubURLError()
+        parts = re.split('/|:', match.group(0))
+        user = parts[1]
+        repo = parts[2].split('.git')[0]
+        return user, repo
+
+    def get_project_json(self):
+        """Download and return project.json."""
+        url = self.contents['project.json']['download_url']
+        resp = github.get(url)
+        return json.loads(resp.content)

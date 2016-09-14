@@ -21,7 +21,7 @@ from pybossa.core import project_repo, auditlog_repo, uploader
 from pybossa.auditlogger import AuditLogger
 from . import github
 from .forms import GitHubProjectForm, GitHubURLForm
-from .github_repo import GitHubRepo, InvalidPybossaProjectError
+from .github_repo import GitHubRepo, InvalidPybossaProjectError, GitHubURLError
 
 
 blueprint = Blueprint('github', __name__, template_folder='templates')
@@ -117,8 +117,16 @@ def import_repo(short_name):
     github_url = request.args.get('github_url')
     try:
         gh_repo = GitHubRepo(github_url)
-    except (GitHubError, InvalidPybossaProjectError) as e:
+    except GitHubURLError as e:
         flash(str(e), 'error')
+        return redirect(url_for('.sync', short_name=project.short_name))
+
+    gh_repo.load_contents()
+    try:
+        gh_repo.validate()
+    except InvalidPybossaProjectError as e:
+        flash(str(e), 'error')
+        return redirect(url_for('.sync', short_name=project.short_name))
 
     form = GitHubProjectForm(request.form)
     project_json = gh_repo.get_project_json()
@@ -164,6 +172,7 @@ def import_repo(short_name):
             flash('''DataError: {0} <br><br>Please check the files being
                   imported from GitHub'''.format(e.orig), 'danger')
             return redirect(url_for('.sync', short_name=project.short_name))
+
         auditlogger.add_log_entry(old_project, project, current_user)
         cached_cat.reset()
         cached_projects.get_project(project.short_name)
