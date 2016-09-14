@@ -1,11 +1,14 @@
 # -*- coding: utf8 -*-
 """View module for pybossa-github-builder."""
 
+import os
 import json
 import time
 import uuid
 import StringIO
 import sqlalchemy
+import tempfile
+import urllib
 from functools import wraps
 from flask import current_app as app
 from flask import render_template, redirect, session, flash, url_for, request
@@ -19,6 +22,7 @@ from pybossa.cache import categories as cached_cat
 from pybossa.cache import projects as cached_projects
 from pybossa.core import project_repo, auditlog_repo, uploader
 from pybossa.auditlogger import AuditLogger
+from werkzeug import secure_filename
 from . import github
 from .forms import GitHubProjectForm, GitHubURLForm
 from .github_repo import GitHubRepo, InvalidPybossaProjectError, GitHubURLError
@@ -104,6 +108,16 @@ def _populate_form(form, repo_contents, project_json):
     add_choices(form.thumbnail, ['.png', '.jpg', 'jpeg'], 'thumbnail.png')
 
 
+def _download(filename, container, data):
+        """Download image."""
+        dl_dir = os.path.join(uploader.upload_folder, container)
+        if not os.path.isdir(dl_dir):  # pragma: no cover
+            os.makedirs(dl_dir)
+        dl_path = os.path.join(dl_dir, secure_filename(filename))
+        with open(dl_path, 'wb') as f:
+            f.write(data)
+
+
 @blueprint.route('/import/<short_name>', methods=['GET', 'POST'])
 @github_login_required
 @login_required
@@ -161,11 +175,15 @@ def import_repo(short_name):
         project.info = info
 
         if form.thumbnail.data:
-            f = StringIO.StringIO(github.get(form.thumbnail.data).content)
+            data = github.get(form.thumbnail.data).content
             prefix = time.time()
-            f.filename = "project_%s_thumbnail_%i.png" % (project.id, prefix)
+            filename = "project_%s_thumbnail_%i.png" % (project.id, prefix)
             container = "user_%s" % current_user.id
-            uploader.upload_file(f, container=container)
+            _download(filename, container, data)
+            if project.info.get("thumbnail"):
+                uploader.delete_file(project.info["thumbnail"], container)
+            project.info['container'] = container
+            project.info['thumbnail'] = filename
         try:
             project_repo.update(project)
         except sqlalchemy.exc.DataError as e:  # pragma: no cover
@@ -177,7 +195,7 @@ def import_repo(short_name):
         cached_cat.reset()
         cached_projects.get_project(project.short_name)
         flash(gettext('Project updated!'), 'success')
-        return redirect(url_for('project.details',
+        return redirect(url_for('project.tasks',
                                 short_name=project.short_name))
 
     elif request.method == 'POST':  # pragma: no cover
