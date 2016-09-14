@@ -25,7 +25,7 @@ from pybossa.auditlogger import AuditLogger
 from werkzeug import secure_filename
 from . import github
 from .forms import GitHubProjectForm, GitHubURLForm
-from .github_repo import GitHubRepo
+from .github_repo import GitHubRepo, InvalidPybossaProjectError, GitHubURLError
 
 
 blueprint = Blueprint('github', __name__, template_folder='templates')
@@ -129,14 +129,17 @@ def import_repo(short_name):
     ensure_authorized_to('update', project)
 
     github_url = request.args.get('github_url')
-    gh_repo = GitHubRepo(github_url)
     try:
-        gh_repo.load_contents()
-    except GitHubError as e:  # pragma: no cover
+        gh_repo = GitHubRepo(github_url)
+    except GitHubURLError as e:
         flash(str(e), 'error')
         return redirect(url_for('.sync', short_name=project.short_name))
-    if not gh_repo.validate():  # pragma: no cover
-        flash('That is not a valid PyBossa project', 'error')
+
+    gh_repo.load_contents()
+    try:
+        gh_repo.validate()
+    except InvalidPybossaProjectError as e:
+        flash(str(e), 'error')
         return redirect(url_for('.sync', short_name=project.short_name))
 
     form = GitHubProjectForm(request.form)
@@ -187,6 +190,7 @@ def import_repo(short_name):
             flash('''DataError: {0} <br><br>Please check the files being
                   imported from GitHub'''.format(e.orig), 'danger')
             return redirect(url_for('.sync', short_name=project.short_name))
+
         auditlogger.add_log_entry(old_project, project, current_user)
         cached_cat.reset()
         cached_projects.get_project(project.short_name)

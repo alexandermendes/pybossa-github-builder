@@ -8,6 +8,22 @@ import jsonschema
 from . import github
 
 
+class InvalidPybossaProjectError(Exception):
+    """Raied if a repo is not for a vaild PyBossa project."""
+
+    def __init__(self, msg=None):
+        if msg is None:
+            msg = 'that is not a valid PyBossa project'
+        super(Exception, self).__init__(msg)
+
+
+class GitHubURLError(Exception):
+    """Raised if a GitHub URL is invalid."""
+
+    def __init__(self):
+        super(Exception, self).__init__('that is not a valid GitHub URL')
+
+
 class GitHubRepo(object):
     """A class for interacting with a GitHub repo for a PyBossa project."""
 
@@ -15,23 +31,6 @@ class GitHubRepo(object):
 
     def __init__(self, url):
         self.user, self.repo = self.get_user_and_repo(url)
-
-    def get_user_and_repo(self, url):
-        """Return the GitHub user and repo."""
-        patn = r'github\.[^\/:]+[\/|:]([^\/]+)\/([^\/|\s|\)]+)[.git|\/]?'
-        match = re.search(patn, url)
-        if not match:
-            raise GitHubURLError()
-        parts = re.split('/|:', match.group(0))
-        user = parts[1]
-        repo = parts[2].split('.git')[0]
-        return user, repo
-
-    def get_project_json(self):
-        """Download and return the project details."""
-        url = self.contents['project.json']['download_url']
-        resp = github.get(url)
-        return json.loads(resp.content)
 
     def load_contents(self):
         """Load the contents of a GitHub repo."""
@@ -50,21 +49,34 @@ class GitHubRepo(object):
         get_dir_contents()
 
     def validate(self):
-        """Validate a PyBossa project GitHub repo."""
+        """Validate a GitHub repo as a PyBossa project."""
         if 'project.json' not in self.contents:  # pragma: no cover
-            return False
-        project_json = self.get_project_json()
+            raise InvalidPybossaProjectError('no project.json file found')
+        try:
+            project_json = self.get_project_json()
+        except ValueError as e:
+            raise InvalidPybossaProjectError(str(e))
         path = os.path.join(os.path.dirname(__file__), 'project_schema.json')
         project_schema = json.load(open(path))
         try:
             jsonschema.validate(project_json, project_schema)
         except jsonschema.exceptions.ValidationError as e:  # pragma: no cover
-            return False
-        return True
+            err_msg = 'project.json does not validate against the schema'
+            raise InvalidPybossaProjectError(err_msg)
 
+    def get_user_and_repo(self, url):
+        """Return the GitHub user and repo."""
+        patn = r'github\.[^\/:]+[\/|:]([^\/]+)\/([^\/|\s|\)]+)[.git|\/]?'
+        match = re.search(patn, url)
+        if not match:
+            raise GitHubURLError()
+        parts = re.split('/|:', match.group(0))
+        user = parts[1]
+        repo = parts[2].split('.git')[0]
+        return user, repo
 
-class GitHubURLError(Exception):
-    """Raised if a GitHub URL is invalid."""
-
-    def __init__(self):
-        super(Exception, self).__init__('this is not a valid GitHub URL')
+    def get_project_json(self):
+        """Download and return project.json."""
+        url = self.contents['project.json']['download_url']
+        resp = github.get(url)
+        return json.loads(resp.content)
