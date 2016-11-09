@@ -70,3 +70,8 @@ project's task presenter, tutorial, results, long description, thumbnail and so 
 
 Note that the project's short name, as it's written throughout the GitHub repository, will be replaced in the project's task presenter, 
 tutorial and results (if any of these files are imported) with the short name of the actual project.
+
+### Example
+
+See [project-convert-a-card](https://github.com/LibCrowds/project-convert-a-card) for an example of a project that can be loaded using 
+this plugin.
